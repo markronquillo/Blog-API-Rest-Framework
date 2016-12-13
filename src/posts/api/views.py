@@ -1,10 +1,26 @@
 from rest_framework.generics import (
-    UpdateAPIView, DestroyAPIView,
-    ListAPIView, RetrieveAPIView
+    CreateAPIView, 
+    UpdateAPIView, 
+    DestroyAPIView,
+    ListAPIView, 
+    RetrieveAPIView,
+    RetrieveUpdateAPIView,
 )
 
+from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
+    IsAdminUser,
+    IsAuthenticatedOrReadOnly,
+    )
+
 from posts.models import Post
-from .serializers import PostListSerializer, PostDetailSerializer
+from .serializers import (
+    PostCreateUpdateSerializer,
+    PostListSerializer, 
+    PostDetailSerializer)
+
+from .permissions import IsOwnerOrReadOnly
 
 
 class PostListAPIView(ListAPIView):
@@ -12,11 +28,24 @@ class PostListAPIView(ListAPIView):
     serializer_class = PostListSerializer
 
 
-class PostUpdateAPIView(UpdateAPIView):
+class PostCreateAPIView(CreateAPIView):
     queryset = Post.objects.all()
-    serializer_class = PostDetailSerializer
+    serializer_class = PostCreateUpdateSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class PostUpdateAPIView(RetrieveUpdateAPIView):
+    queryset = Post.objects.all()
+    serializer_class = PostCreateUpdateSerializer
+    permission_classes = [IsOwnerOrReadOnly]
     lookup_field = 'slug'
     lookup_url_kwarg = 'abc'
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class PostDeleteAPIView(DestroyAPIView):
